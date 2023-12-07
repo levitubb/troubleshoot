@@ -78,6 +78,8 @@ def errorlog(zipname, levels, serial):
         for month_folder in levels["level2"]:
             path = "Logs/" + month_folder + "/Errors.txt"
             with ZipFile(zipname) as zip:
+                try: zip.open(path)
+                except: continue
                 for line in zip.open(path):
                     decoded_line = line.decode(encoding="utf-8")
                     if "|" not in decoded_line:
@@ -95,8 +97,25 @@ def errorlog(zipname, levels, serial):
     # print (type(errors.Timestamp.iloc[1]))
     return errors
 
-def errorcontext(zipname, errors, idx, lookback = 15, lookforward = 5):
+def markdown_logtext(line):
+    line = re.sub("[\t ]{2,}", " ", line.decode(encoding="utf-8")).replace('\n', '')
+    line = line.split("|")
+    try:
+        datetime.fromisoformat(line[0][0:23])
+        line[0] = "`"+line[0]+"`"
+        line.remove("INFO")
+        line.remove("RunDetails")
+        line[1] = "  \n" + line[1]
+    except:
+        line[0]
+    return ('|'.join(line))
+
+        # if any(n in line for n in nonverbose):
+
+
+def errorcontext(zipname, errors, idx, lookback = 200, lookforward = 5, lastoperation = False, verbose = False):
     logtext = ""
+    nonverbose = ["ProgressBar", "SKIP ROTARY MOVE COMMAND", "IfThenGoto", "UVReadAndRecordUVAbsorbance"]
     errortime = datetime.fromisoformat(errors.iloc[idx, 0][0:23])
 
     year = str(errortime.year)
@@ -117,7 +136,7 @@ def errorcontext(zipname, errors, idx, lookback = 15, lookforward = 5):
         # print("Run Log:", errorfile)
         notfound = True
         errorline = {"timestamp":datetime(1990,1,1), "line number":0}
-        errordumpline = {"timestamp":datetime(1990,1,1), "line number":0}
+        errordumpline = {"timestamp":datetime(1990,1,1), "line number":0, "last operation":0}
         searchfiles = [errorfile, path + "Detail_0.txt"]
         for item in searchfiles:
             linefile = zip.open(item).readlines()
@@ -135,6 +154,9 @@ def errorcontext(zipname, errors, idx, lookback = 15, lookforward = 5):
                         if "FirmwareVersionNumber:" in decoded_line:
                             errordumpline["timestamp"] = timestamp
                             errordumpline["line number"] = pos
+                            errordumpline["verbose count"] = 0
+                        elif "OPERATION:" in decoded_line:
+                            errordumpline["last operation"] = pos
                         elif (((timestamp - errortime).seconds) < 1) & (((timestamp - errortime).days) >= 0):
                             print("SEARCHED ERROR:",re.sub("[\t ]{2,}", " ", decoded_line))
                             errorline["timestamp"] = timestamp
@@ -149,36 +171,40 @@ def errorcontext(zipname, errors, idx, lookback = 15, lookforward = 5):
             if (notfound == False):
                     break
         if ((errorline["line number"] > 0) & ((errorline["line number"]-errordumpline["line number"]) > 0) & (((errorline["timestamp"] - errordumpline["timestamp"]).seconds) < 5)):
-            for line in linefile[errordumpline["line number"]-lookback:errorline["line number"]+1]:
-                line = re.sub("[\t ]{2,}", " ", line.decode(encoding="utf-8")).replace('\n', '')
-                logtext = logtext + "\n" + line
-                # logtext = logtext + line
-                # print(logtext)
-                # print(line.decode(encoding="utf-8").replace('\t', '').replace('\n', ''))
+            if lastoperation:
+                filelow = errordumpline["last operation"]
+            else:
+                filelow = errordumpline["line number"]-lookback
+            filehigh = errorline["line number"]+1
         else:
-            for line in linefile[errorline["line number"]-lookback:errorline["line number"]+lookforward]:
-                line = re.sub("[\t ]{2,}", " ", line.decode(encoding="utf-8")).replace('\n', '')
-                logtext = logtext + "\n" + line
-                # logtext = logtext + line
-        # print(logtext)
-                # print(line.decode(encoding="utf-8").replace('\t', '').replace('\n', ''))
-        return logtext
-        # for line in zip.open(path + "Detail_0.txt"):
-        #     decoded_line = line.decode(encoding="utf-8")
-        #     if "|" not in decoded_line:
-        #         continue
-        #     else:
-        #         # print(decoded_line)
-        #         try:
-        #             timestamp = datetime.fromisoformat(decoded_line.split("|")[0][0:23])
-        #             if ((timestamp - errortime).seconds) < 1:
-        #                 print(decoded_line)
-        #                 print("Error found in RunDetail 0")
-        #                 notfound = False
-        #                 break
-        #         except:
-        #             continue
-        if (notfound):
-            print("WARNING: Error not found!")
+            if lastoperation:
+                filelow = errordumpline["last operation"]
+            else:
+                filelow = errorline["line number"]-lookback
+            filehigh = errorline["line number"]+lookforward
+        # print(len(linefile))
+        filelow = np.clip(filelow, 0, len(linefile)-lookforward)
+        filehigh = np.clip(filehigh, 0, len(linefile))
+        # print(filelow, filehigh)
+        while filelow < filehigh:
+        # for line in linefile[filelow:filehigh]:
+            if (any(n in linefile[filelow].decode(encoding="utf-8") for n in nonverbose)):
+                if (verbose == False):
+                    filelow = filelow + 1
+                    filehigh = filehigh + 1
+                    filehigh = np.clip(filehigh, 0, len(linefile))
+                    continue
+                else:
+                    # logtext = logtext + "  \n" + markdown_logtext(line)
+                    logtext = logtext + "  \n" + markdown_logtext(linefile[filelow])
+                    filelow = filelow + 1
+            else:
+                # logtext = logtext + "  \n" + markdown_logtext(line)
+                logtext = logtext + "  \n" + markdown_logtext(linefile[filelow])
+                filelow = filelow + 1
 
-        # print(df["date_time"].iloc[20]>errortime)
+
+        if (notfound):
+            return ("WARNING: Error not found!")
+        else:
+            return logtext
