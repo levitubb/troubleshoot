@@ -1,0 +1,7 @@
+directories:
+  output: dist
+  buildResources: assets
+files:
+  - filter:
+      - build/**/*
+electronVersion: 28.0.0

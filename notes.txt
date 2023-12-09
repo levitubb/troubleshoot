@@ -1,0 +1,58 @@
+https://ploomber.io/blog/streamlit_exe/
+
+https://discuss.huggingface.co/t/streamlit-spaces-with-modulenotfounderror-no-module-named-altair-vegalite-v4-error/39683/2
+
+
+This, unfortunately, didn’t work for me. Instead I did the following:
+[[[How to create a Streamlit desktop app]]]
+
+Create the following package.json file to start a new NPM project. Edit the name field.
+{
+“name”: “xxx”,
+“version”: “0.1.0”,
+“main”: “./build/electron/main.js”,
+“scripts”: {
+“dump”: “dump-stlite-desktop-artifacts”,
+“serve”: “cross-env NODE_ENV=production electron .”,
+“pack”: “electron-builder --dir”,
+“dist”: “electron-builder”,
+“postinstall”: “electron-builder install-app-deps”
+},
+“build”: {
+“files”: [“build/**/*”],
+“directories”: {
+“buildResources”: “assets”
+}
+},
+“devDependencies”: {
+“@stlite/desktop”: “^0.25.0”,
+“cross-env”: “^7.0.3”,
+“electron”: “23.1.1”,
+“electron-builder”: “^23.6.0”
+}
+}
+Here you should change it to the following:
+->->->->->->->->->->->->->->->->->->->->->->
+},
+“devDependencies”: {
+“@stlite/desktop”: “^0.31.0”,
+“cross-env”: “^7.0.3”, (check your version, by running npm show cross-env in the command)
+“electron”: “23.1.1”, (check your version – for me it was 23.1.1)
+“electron-builder”: “^24.4.0” (depending on the version)
+}
+}
+2. Run npm update (instead of npm install).
+3. Create streamlit_app directory.
+o Any directory name can be used here.
+4. Create streamlit_app/streamlit_app.py.
+o Change the directory name if you used a different name in the previous step.
+5. Write your Streamlit app code in streamlit_app/streamlit_app.py.
+o The file name streamlit_app.py is not configurable now.
+6. Optionally, you can add more contents in the directory, including pages/*.py for multi-page apps, any data files, and so on.
+7. Run npm run dump streamlit_app – -r requirements.txt (the requirements file includes like the following:
+streamlit
+plotly
+pandas
+8. Run npm run serve (or similar to the video –servewindows)
+9. Run npm run dist or yarn dist for packaging.
+o This command bundles the ./build directory created in the step above into application files (.app, .exe, .dmg etc.) in the ./dist directory. To customize the built app, e.g. setting the icon, follow the electron-builder instructions.

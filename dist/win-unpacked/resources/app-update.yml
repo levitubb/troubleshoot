@@ -1,0 +1,4 @@
+owner: levitubb
+repo: troubleshoot
+provider: github
+updaterCacheDirName: streamlit_app-updater

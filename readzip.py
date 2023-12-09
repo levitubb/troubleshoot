@@ -1,10 +1,7 @@
 from filefunctions import *
-import tkinter
-from tkinter import filedialog
 import os
 import streamlit as st
 import numpy as np
-
 
 # zipname = "Liberty PRIME 2.0 Troubleshooting Bundle - 2023-11-15 13.23.27.zip"
 # zipname = "Liberty PRIME 2.0 Troubleshooting Bundle - 2023-09-18 10.05.56.zip"
@@ -14,40 +11,23 @@ import numpy as np
 def readzip():
     st.set_page_config(layout = "wide")
 
-    root = tkinter.Tk()
-    root.withdraw() #use to hide tkinter window
-    root.wm_attributes('-topmost', 1)
-    save = open("save.txt", "r")
-    saveread = save.readlines()
-    save.close()
-    print(saveread)
-    try:
-        zipname = saveread[0]
-    except:
-        zipname = ""
+    # save = open("save.txt", "r")
+    # saveread = save.readlines()
+    # save.close()
+    # print(saveread)
+    # try:
+    #     zipname = saveread[0]
+    # except:
+    #     zipname = ""
+    zipname = ""
 
+    zipname = st.file_uploader("Pick a Troubleshooting Bundle Zip File...", type = ".zip")
+    if zipname is None:
+        st.session_state["upload_state"] = "Upload a file first!"
 
-
-    def search_for_file_path():
-        currdir = os.getcwd()
-        tempdir = filedialog.askopenfilename(parent=root, initialdir=currdir, title='Please select a directory')
-        if len(tempdir) > 0:
-            print ("You chose: %s" % tempdir)
-        return tempdir
-
-    # zipname = search_for_file_path()
-
-    if st.button("Pick a TB to analyze"):
-        zipname = search_for_file_path()
-        print("ZIPNAME", zipname)
-        save = open("save.txt", "w")
-        save.write(zipname)
-        save.close()
-        print ("\nfile_path_variable = ", zipname)
-
-
-    if zipname != "":
-        st.text("TB Location: " + zipname)
+    if (zipname != "") & (zipname != None):
+    # if 0:
+        # st.text("TB Location: " + zipname)
         levels = findlevels(zipname)
         # print(levels)
 
@@ -57,7 +37,12 @@ def readzip():
         errors = errorlog(zipname, levels, log_info["serial"])
         # print(errors)
 
-        st.write(errors)
+        st.markdown(":blue[__Software Version:__ " + log_info["version"] + "\t|\t__Date Updated:__ " + str(log_info["date updated"])[0:19]+" ]")
+        "---"
+        # col2 = st.write("Date Updated: " + str(log_info["date updated"]))
+        st.subheader("Errors Detected:")
+        st.dataframe(errors, width = 1200, height = 300, use_container_width = True)
+
 
 
         option = st.selectbox("Pick an error to investigate:", errors["Timestamp"] + " | " + errors["Description"])
@@ -70,9 +55,9 @@ def readzip():
         if not lastoperation:
             lookback = col2.number_input("How many lines to load before the error?", min_value = 0, value = 20)
             lookforward = col3.number_input("How many lines to load after the error?", min_value = 0, value = 5)
-            st.write(errorcontext(zipname, errors, error_location, lookback, lookforward, verbose=verbose))
+            st.markdown(errorcontext(zipname, errors, error_location, lookback, lookforward, verbose=verbose))
         else:
-            st.write(errorcontext(zipname, errors, error_location, lastoperation = lastoperation, verbose=verbose))
+            st.markdown(errorcontext(zipname, errors, error_location, lastoperation = lastoperation, verbose=verbose))
 
 
 

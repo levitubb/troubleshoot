@@ -4,6 +4,7 @@ import pandas as pd
 import numpy as np
 from datetime import datetime, date
 import re
+from itertools import groupby
 
 
 
@@ -98,17 +99,36 @@ def errorlog(zipname, levels, serial):
     return errors
 
 def markdown_logtext(line):
-    line = re.sub("[\t ]{2,}", " ", line.decode(encoding="utf-8")).replace('\n', '')
+    # line = re.sub("[\t ]{2,}", " ", line.decode(encoding="utf-8")).replace('\n', '')
+    line =line.decode(encoding="utf-8").replace('\n', '').replace('\r', '')
+
     line = line.split("|")
+    dash = ""
+    for pos, member in enumerate(line):
+        if ("COMMAND" in member) | ("OPERATION" in member):
+            groups = groupby(member)
+            result = [(label, sum(1 for _ in group)) for label, group in groups]
+            # if (result[0][0] == "\t"):
+                # print(result[0][1])
+                # print(member)
+            # for i in range(result[0][1]):
+            #     dash = dash + ">"
+            # line[pos] = dash + member
     try:
         datetime.fromisoformat(line[0][0:23])
-        line[0] = "`"+line[0]+"`"
+        line[0] = " `"+line[0]+"`"
         line.remove("INFO")
         line.remove("RunDetails")
-        line[1] = "  \n" + line[1]
+        # line[1] = "```" + line[1] + "```"
+        line[1] = "> " + line[1]
     except:
-        line[0]
-    return ('|'.join(line))
+        # line.insert(0, '|  ')
+        print(line)
+
+        # line[1] = line[0]
+        # line[0] = "| "
+    # print(line)
+    return (' | '.join(line[1:]) + "\n")
 
         # if any(n in line for n in nonverbose):
 
@@ -142,6 +162,7 @@ def errorcontext(zipname, errors, idx, lookback = 200, lookforward = 5, lastoper
             linefile = zip.open(item).readlines()
 
             for pos, line in enumerate(linefile):
+                # print(line)
                 try:
                     decoded_line = line.decode(encoding="utf-8")
                     if "|" not in decoded_line:
@@ -186,6 +207,7 @@ def errorcontext(zipname, errors, idx, lookback = 200, lookforward = 5, lastoper
         filelow = np.clip(filelow, 0, len(linefile)-lookforward)
         filehigh = np.clip(filehigh, 0, len(linefile))
         # print(filelow, filehigh)
+        # logtext = "| Time | Line |\n| --- | --- |\n"
         while filelow < filehigh:
         # for line in linefile[filelow:filehigh]:
             if (any(n in linefile[filelow].decode(encoding="utf-8") for n in nonverbose)):
@@ -196,15 +218,18 @@ def errorcontext(zipname, errors, idx, lookback = 200, lookforward = 5, lastoper
                     continue
                 else:
                     # logtext = logtext + "  \n" + markdown_logtext(line)
-                    logtext = logtext + "  \n" + markdown_logtext(linefile[filelow])
+                    logtext = logtext + '\n' + markdown_logtext(linefile[filelow])
                     filelow = filelow + 1
             else:
                 # logtext = logtext + "  \n" + markdown_logtext(line)
-                logtext = logtext + "  \n" + markdown_logtext(linefile[filelow])
+                logtext = logtext + '\n' + markdown_logtext(linefile[filelow])
                 filelow = filelow + 1
 
 
         if (notfound):
             return ("WARNING: Error not found!")
         else:
+            print(logtext)
             return logtext
+            # return """| `2022-12-05 11:42:13.6118` | Closing all valves, homing Rotary 1 (Pos2) and Rotary 2 (Pos2) |\n| --- | --- |\n| `2022-12-05 11:42:13.6118` | Closing all valves, homing Rotary 1 (Pos2) and Rotary 2 (Pos2) |\n| `2022-12-05 11:42:13.6118` | Closing all valves, homing Rotary 1 (Pos2) and Rotary 2 (Pos2) |\n| `2022-12-05 11:42:13.6118` | Closing all valves, homing Rotary 1 (Pos2) and Rotary 2 (Pos2) |"""
+            # return """| `2022-12-05 11:42:13.6118` | Closing all valves, homing Rotary 1 (Pos2) and Rotary 2 (Pos2) |\n| --- | --- |\n| `2022-12-05 11:42:14.0493` | SendVCValveCommand: {"cmd":"vici", "vcmd":"/1go5"} |\n| `2022-12-05 11:42:15.1542` | SendVCValveCommand: {"cmd":"vici", "vcmd":"/2go2"} |"""
