@@ -142,9 +142,9 @@ def markdown_logtext(line):
         # line[1] = "> " + line[1]
     except:
 
-        # line.insert(0, "")
+        line.insert(0, "")
 
-        line[0]
+        # line[0]
 
 
 
@@ -259,32 +259,25 @@ def errorcontext(zipname, levels, errors, idx, lookback = 200, lookforward = 5, 
                 # logtimes.append(markdown_logtext_list[0])
 
                 filelow = filelow + 1
-
+        print(logtext)
         if (notfound):
             return ("WARNING: Error not found!")
         else:
-            # print(logtext)
             tabs = list()
-            # logtext = logtext.split('|')
-            # print(logtext)
             logtext = logtext.split('\n')
             logtext = list(filter(('').__ne__, logtext))
             for pos, member in enumerate(logtext):
-                # line = line.split("|")
-                #
-                # for member in line:
-                    # print(member)
-                # if ("COMMAND" in member) | ("OPERATION" in member):
                 groups = groupby(member)
                 result = [(label, sum(1 for _ in group)) for label, group in groups]
-                # print(result)
                 if (result[0][0] == "\t"):
                     tabs.insert(pos, result[0][1])
                 else:
                     tabs.insert(pos, 0)
-            # print(tabs)
-            mintabs = min(list(filter((0).__ne__, tabs)))
-            # print(mintabs)
+            print(tabs)
+            try:
+                mintabs = min(list(filter((0).__ne__, tabs)))
+            except:
+                mintabs = 0
             for pos, member in enumerate(tabs):
                 if pos == 0:
                     tabs[pos] = 0
@@ -293,30 +286,46 @@ def errorcontext(zipname, levels, errors, idx, lookback = 200, lookforward = 5, 
                     tabs[pos] = 0
                 elif (member == 0):
                     tabs[pos] = tabs[pos - 1]
-                elif ("COMMAND:" in logtext[pos]) & ("ExecuteOperation" not in logtext[pos]):
-                    print(logtext[pos])
-                    print(tabs[pos])
+                elif ("COMMAND:" in logtext[pos-1]) & ("ExecuteOperation" not in logtext[pos-1]):
+                    # print(logtext[pos])
+                    # print(tabs[pos])
                     tabs[pos] = tabs[pos-1]
                 else:
                     tabs[pos] = member - mintabs
             print(tabs)
-            # print(len(tabs), len(logtext))
-            for i in range(len(tabs)):
+            tabsarray = np.array(tabs)
+            B= np.split(tabsarray, np.where(tabsarray[:]== 0)[0][1:])
+            tabslength = 0
+            for pos,array in enumerate(B):
+                tabslength = len(B[pos]) + tabslength
+                if (len(array)>1):
+                    if "OPERATION:" in logtext[tabslength-len(B[pos])]:
+                        minmember = min(array[array > 0])-1
+                    else:
+                        minmember = min(array[array > 0])
+                    minarray = ((array > 0)*minmember)
+                    B[pos] = B [pos] - minarray
+
+            tabs = np.hstack(B)
+            # print(tabs)
+            for i in range(1,len(tabs)):
                 logtext[i] = re.sub("[\t ]{2,}", "", logtext[i])
                 tabchars = ""
                 int = 0
-                if tabs[i] == 0:
-                    logtext[i] = """---\n
+                if (tabs[i] == 0) & (tabs[i-1] > 0):
+                    logtext[i] = """---
                     """ + logtext[i]
                     # logtimes[i] = """---\n
                     # """ + logtimes[i]
-                    tabs[i]
+                    # tabs[i]
+                else:
+                    logtext[i] = """    """ + logtext[i]
                 while int < tabs[i]:
                     tabchars = tabchars + "\t"
                     int = int + 1
-                logtext[i] = tabchars + logtext[i] + "\n"
-            # logtext[0] = """---\n
-            # # """ + logtext[0]
+                logtext[i] = tabchars + logtext[i]
+            logtext[0] = """---\n
+            """ + logtext[0]
 
 
 
