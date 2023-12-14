@@ -148,15 +148,15 @@ def markdown_logtext(line):
 
 
 
-    # line[1] = '|'.join(line[1:]) + "\n"
+    line[1] = '|'.join(line[1:])
     # print(line)
     # return line[0:2]
-    return ('|'.join(line[1:]))
+    return (line[0],line[1])
 
         # if any(n in line for n in nonverbose):
 
 
-def errorcontext(zipname, levels, errors, idx, lookback = 200, lookforward = 5, lastoperation = False, verbose = False):
+def errorcontext(zipname, levels, errors, idx, lookback = 200, lookforward = 5, lastoperation = False, verbose = False, timestamps = False):
     logtext = ""
     nonverbose = ["ProgressBar", "SKIP ROTARY MOVE COMMAND", "IfThenGoto", "UVReadAndRecordUVAbsorbance"]
     errortime = datetime.fromisoformat(errors.iloc[idx, 0][0:23])
@@ -242,7 +242,9 @@ def errorcontext(zipname, levels, errors, idx, lookback = 200, lookforward = 5, 
                     filehigh = np.clip(filehigh, 0, len(linefile))
                     continue
                 else:
-                    logtext = logtext + '\n' + markdown_logtext(linefile[filelow])
+                    logtime, linetext = markdown_logtext(linefile[filelow])
+                    logtext = logtext + '\n' + linetext
+                    logtimes.append(logtime)
 
                     # markdown_logtext_list = markdown_logtext(linefile[filelow])
                     # logtext = logtext + '\n' + markdown_logtext_list[1]
@@ -252,14 +254,16 @@ def errorcontext(zipname, levels, errors, idx, lookback = 200, lookforward = 5, 
             else:
 
 
-                logtext = logtext + '\n' + markdown_logtext(linefile[filelow])
+                logtime, linetext = markdown_logtext(linefile[filelow])
+                logtext = logtext + '\n' + linetext
+                logtimes.append(logtime)
 
                 # markdown_logtext_list = markdown_logtext(linefile[filelow])
                 # logtext = logtext + '\n' + markdown_logtext_list[1]
                 # logtimes.append(markdown_logtext_list[0])
 
                 filelow = filelow + 1
-        print(logtext)
+        # print(logtext)
         if (notfound):
             return ("WARNING: Error not found!")
         else:
@@ -279,37 +283,64 @@ def errorcontext(zipname, levels, errors, idx, lookback = 200, lookforward = 5, 
             except:
                 mintabs = 0
             for pos, member in enumerate(tabs):
+                print(logtext[pos], "|",  member, "/", tabs[pos])
                 if pos == 0:
                     tabs[pos] = 0
-                    continue
                 elif member == mintabs:
                     tabs[pos] = 0
-                elif (member == 0):
-                    tabs[pos] = tabs[pos - 1]
-                elif ("COMMAND:" in logtext[pos-1]) & ("ExecuteOperation" not in logtext[pos-1]):
-                    # print(logtext[pos])
-                    # print(tabs[pos])
+                elif ((member - tabs[pos-1])>0) & (("ExecuteOperation" in logtext[pos-1]) | ("OPERATION:" in logtext[pos-1])):
+                    tabs[pos] = tabs[pos-1]+1
+                # elif (("COMMAND:" in logtext[pos-1]) & ("ExecuteOperation" not in logtext[pos-1])) | (("COMMAND:" not in logtext[pos-1]) & ("OPERATION" not in logtext[pos-1])):
+                    #     tabs[pos] = tabs[pos-1]
+                # elif (member != 0):
+                #     tabs[pos] = member - mintabs
+
+                elif (member != 0) & ((member - tabs[pos-1])<0):
+                    tabs[pos] = tabs[pos-1]-1
+                elif (member != 0):
                     tabs[pos] = tabs[pos-1]
-                else:
-                    tabs[pos] = member - mintabs
-            print(tabs)
+                elif (member == 0):
+                    tabs[pos] = tabs[pos-1]
+                #     print(logtext[pos], "|",  member, "/", tabs[pos])
+                print(logtext[pos], "|",  member, "/", tabs[pos])
+            # print(tabs)
             tabsarray = np.array(tabs)
             B= np.split(tabsarray, np.where(tabsarray[:]== 0)[0][1:])
             tabslength = 0
+            # print(B)
             for pos,array in enumerate(B):
                 tabslength = len(B[pos]) + tabslength
+                print(array)
                 if (len(array)>1):
                     if "OPERATION:" in logtext[tabslength-len(B[pos])]:
-                        minmember = min(array[array > 0])-1
+                        nonzeroarray = array[array > 0]
+                        print("NONZERO:",nonzeroarray)
+                        minmember = min(nonzeroarray)-1
+                        print("MMININININIIIIIIII", minmember)
                     else:
-                        minmember = min(array[array > 0])
-                    minarray = ((array > 0)*minmember)
-                    B[pos] = B [pos] - minarray
+                        nonzeroarray = array[array > 0]
+                        print("NONZERO:",nonzeroarray)
+                        minmember = min(nonzeroarray)
+                        print("MMININININIIIIIIII", minmember)
+                    # minarray = ((array > 0)*minmember)
+                    # if any(x > 0 for x in minarray):
+                    #     print("GREATER THANNNN11111",minarray[minarray>0])
+                    #     while 1 not in minarray[minarray>0]:
+                    #         minarray[minarray>0] = minarray[minarray>0]-1
+                    #     print("GREATER THANNNN",minarray[minarray>0])
 
+
+                    # B[pos] = B [pos] - minarray
+                # print(B[pos])
             tabs = np.hstack(B)
+
             # print(tabs)
             for i in range(1,len(tabs)):
+                # print(list(logtext[i]), "|",  member, "/", tabs[i])
                 logtext[i] = re.sub("[\t ]{2,}", "", logtext[i])
+                if logtext[i].startswith("\t"):
+                    logtext[i]= logtext[i][1:]
+                # print(logtext[i], "|",  member, "/", tabs[i])
                 tabchars = ""
                 int = 0
                 if (tabs[i] == 0) & (tabs[i-1] > 0):
@@ -319,13 +350,24 @@ def errorcontext(zipname, levels, errors, idx, lookback = 200, lookforward = 5, 
                     # """ + logtimes[i]
                     # tabs[i]
                 else:
-                    logtext[i] = """    """ + logtext[i]
+                    if timestamps:
+
+                        logtext[i] = """    """ + logtimes[i] + "  " + logtext[i]
+                    else:
+                        logtext[i] = """    """ + logtext[i]
+                    # print(logtext[i], "|",  member, "/", tabs[i])
                 while int < tabs[i]:
                     tabchars = tabchars + "\t"
                     int = int + 1
                 logtext[i] = tabchars + logtext[i]
-            logtext[0] = """---\n
-            """ + logtext[0]
+                # print(logtext[i], "|",  member, "/", tabs[i])
+            if timestamps:
+                print(list(logtext[0]))
+                logtext[0] = """---\n
+                """ + logtimes[0] + re.sub("[\t ]{2,}", " ", logtext[0])
+            else:
+                logtext[0] = """---\n
+                """ + logtext[0]
 
 
 
