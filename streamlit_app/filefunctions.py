@@ -153,12 +153,13 @@ def markdown_logtext(line):
     # return line[0:2]
     return (line[0],line[1])
 
-        # if any(n in line for n in nonverbose):
+        # if any(n in line for n in filtertext):
 
 
-def errorcontext(zipname, levels, errors, idx, lookback = 200, lookforward = 5, lastoperation = False, verbose = False, timestamps = False):
+def errorcontext(zipname, levels, errors, idx, lookback = 200, lookforward = 5, lastoperation = False, filterflag = False, filtertext = ["ProgressBar", "SKIP ROTARY MOVE COMMAND", "IfThenGoto", "UVReadAndRecordUVAbsorbance"], timestamps = False):
     logtext = ""
-    nonverbose = ["ProgressBar", "SKIP ROTARY MOVE COMMAND", "IfThenGoto", "UVReadAndRecordUVAbsorbance"]
+    # filtertext = ["ProgressBar", "SKIP ROTARY MOVE COMMAND", "IfThenGoto", "UVReadAndRecordUVAbsorbance"]
+    # print(filtertext)
     errortime = datetime.fromisoformat(errors.iloc[idx, 0][0:23])
 
     year = str(errortime.year)
@@ -234,9 +235,9 @@ def errorcontext(zipname, levels, errors, idx, lookback = 200, lookforward = 5, 
         logtimes = []
         while filelow < filehigh:
         # for line in linefile[filelow:filehigh]:
-            if (any(n in linefile[filelow].decode(encoding="utf-8") for n in nonverbose)):
+            if (any(n in linefile[filelow].decode(encoding="utf-8") for n in filtertext)):
 
-                if (verbose == False):
+                if (filterflag == True):
                     filelow = filelow + 1
                     filehigh = filehigh + 1
                     filehigh = np.clip(filehigh, 0, len(linefile))
@@ -345,7 +346,6 @@ def errorcontext(zipname, levels, errors, idx, lookback = 200, lookforward = 5, 
                 logtext[i] = tabchars + logtext[i]
                 # print(logtext[i], "|",  member, "/", tabs[i])
             if timestamps:
-                print(list(logtext[0]))
                 logtext[0] = """---\n
                 """ + logtimes[0] + re.sub("[\t ]{2,}", " ", logtext[0])
             else:

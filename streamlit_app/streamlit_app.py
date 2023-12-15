@@ -49,25 +49,34 @@ def streamlit_app():
         optiontime = datetime.fromisoformat(option.split("|")[0][0:23])
         error_location = errors.set_index(pd.to_datetime(errors['Timestamp'])).index.get_indexer([optiontime], method='nearest')[0]
 
-        col1, col2, col3= st.columns(3)
+        col1, col2, col3= st.columns([1,2,2])
         lastoperation = col1.checkbox("Start logs from most recent Operation", value = True)
-        verbose = col1.checkbox("Verbose")
-        timestamps = col1.checkbox("Timestamps")
+        filterflag = col1.checkbox("Filter Text", value = True)
+        timestamps = col1.checkbox("Timestamps", value = False)
+        if filterflag:
+            filtertext = col2.text_area("Text to filter", """ProgressBar
+SKIP ROTARY MOVE COMMAND
+IfThenGoto
+UVReadAndRecordUVAbsorbance""", height = 125)
+            filtertext = filtertext.split("\n")
+        else:
+            filtertext = []
         # coll1, coll2 = st.columns([1, 3])
+
         if not lastoperation:
-            lookback = col2.number_input("How many lines to load before the error?", min_value = 0, value = 20)
+            lookback = col3.number_input("How many lines to load before the error?", min_value = 0, value = 20)
             lookforward = col3.number_input("How many lines to load after the error?", min_value = -500, value = 5)
             # logtimes, logtext = errorcontext(zipname, levels, errors, error_location, lookback, lookforward, verbose=verbose)
             # coll1.markdown(logtimes)
             # coll2.markdown(logtext)
 
-            st.markdown(errorcontext(zipname, levels, errors, error_location, lookback, lookforward, verbose=verbose, timestamps=timestamps))
+            st.markdown(errorcontext(zipname, levels, errors, error_location, lookback, lookforward, filterflag=filterflag, filtertext = filtertext, timestamps=timestamps))
         else:
             # logtimes, logtext = errorcontext(zipname, levels, errors, error_location, lastoperation = lastoperation, verbose=verbose)
             # coll1.markdown(logtimes)
             # coll2.markdown(logtext)
 
-            st.markdown(errorcontext(zipname, levels, errors, error_location, lastoperation = lastoperation, verbose=verbose, timestamps=timestamps))
+            st.markdown(errorcontext(zipname, levels, errors, error_location, lastoperation = lastoperation, filterflag=filterflag, filtertext = filtertext, timestamps=timestamps))
 
 
 
