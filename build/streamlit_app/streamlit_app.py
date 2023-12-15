@@ -1,19 +1,14 @@
 from filefunctions import *
-# import tkinter as tk
-# from tkinter import filedialog
 import os
 import streamlit as st
 import numpy as np
-# from plyer import filechooser
-from zipfile import ZipFile, Path
-from io import StringIO
 
 # zipname = "Liberty PRIME 2.0 Troubleshooting Bundle - 2023-11-15 13.23.27.zip"
 # zipname = "Liberty PRIME 2.0 Troubleshooting Bundle - 2023-09-18 10.05.56.zip"
 # zipname = "Liberty PRIME 2.0 Troubleshooting Bundle - 2023-01-13 09.26.42.zip"
 # zipname = "C:/Users/lt259/Desktop/Liberty PRIME 2.0 Troubleshooting Bundle - 2023-11-21 10.32.48.zip"
 # zipname = "C:/Users/lt259/Desktop/Liberty Blue 2.0 Troubleshooting Bundle - 2023-12-06 09.18.31.zip"
-def readzip():
+def streamlit_app():
     st.set_page_config(layout = "wide")
 
     # save = open("save.txt", "r")
@@ -42,7 +37,12 @@ def readzip():
         errors = errorlog(zipname, levels, log_info["serial"])
         # print(errors)
 
-        st.write(errors)
+        st.markdown(":blue[__Software Version:__ " + log_info["version"] + "\t|\t__Date Updated:__ " + str(log_info["date updated"])[0:19]+" ]")
+        "---"
+        # col2 = st.write("Date Updated: " + str(log_info["date updated"]))
+        st.subheader("Errors Detected:")
+        st.dataframe(errors, width = 1200, height = 300, use_container_width = True)
+
 
 
         option = st.selectbox("Pick an error to investigate:", errors["Timestamp"] + " | " + errors["Description"])
@@ -52,14 +52,24 @@ def readzip():
         col1, col2, col3= st.columns(3)
         lastoperation = col1.checkbox("Start logs from most recent Operation", value = True)
         verbose = col1.checkbox("Verbose")
+        timestamps = col1.checkbox("Timestamps")
+        # coll1, coll2 = st.columns([1, 3])
         if not lastoperation:
             lookback = col2.number_input("How many lines to load before the error?", min_value = 0, value = 20)
-            lookforward = col3.number_input("How many lines to load after the error?", min_value = 0, value = 5)
-            st.write(errorcontext(zipname, errors, error_location, lookback, lookforward, verbose=verbose))
+            lookforward = col3.number_input("How many lines to load after the error?", min_value = -500, value = 5)
+            # logtimes, logtext = errorcontext(zipname, levels, errors, error_location, lookback, lookforward, verbose=verbose)
+            # coll1.markdown(logtimes)
+            # coll2.markdown(logtext)
+
+            st.markdown(errorcontext(zipname, levels, errors, error_location, lookback, lookforward, verbose=verbose, timestamps=timestamps))
         else:
-            st.write(errorcontext(zipname, errors, error_location, lastoperation = lastoperation, verbose=verbose))
+            # logtimes, logtext = errorcontext(zipname, levels, errors, error_location, lastoperation = lastoperation, verbose=verbose)
+            # coll1.markdown(logtimes)
+            # coll2.markdown(logtext)
+
+            st.markdown(errorcontext(zipname, levels, errors, error_location, lastoperation = lastoperation, verbose=verbose, timestamps=timestamps))
 
 
 
 if __name__ == "__main__":
-    readzip()
+    streamlit_app()
