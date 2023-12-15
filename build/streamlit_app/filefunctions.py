@@ -15,38 +15,33 @@ def findlevels(zipname):
         folders = zip.namelist()
         folders_list = pd.DataFrame()
         levels = dict()
+        levelsfound = False
         for line in folders:
-            if line.endswith('Logs/'):
-                levels["logsfolder"] = line
-            else:
-                levels["logsfolder"] = "Logs/"
+            if levelsfound == False:
+                if line.endswith('Logs/'):
+                    levels["logsfolder"] = line
+                    levelsfound = True
+                else:
+                    levels["logsfolder"] = "Logs/"
             line = pd.Series(line.split('/'))
             folders_list = pd.concat([folders_list,line], axis = 1, ignore_index = 1).replace('', np.nan)
         passby = 0
         for iter in range(1,folders_list.shape[0]):
             name = "level" + str(iter)
             levellist=folders_list.iloc[iter-1,:].drop_duplicates().replace('', np.nan).dropna().tolist()
-            # for item in levellist:
-            #     print(item)
-            #     if "Troubleshooting" in item:
-            #         passby = 1
-            #         continue
-            # if (iter-passby) == 0:
-            #     print("JDKL:SJK")
-            #     continue
-            # name = "level" + str(iter-passby)
+
             levels[name] = levellist
-        # print(levels)
         foundlogs = False
-        while (foundlogs == False):
-            for item in levels:
-                for member in levels[item]:
-                    if member == 'Logs':
-                        # levels["monthsfolder"] = "level" + str(int(item[5])+1)
-                        monthsfolder = "level" + str(int(item[5])+1)
-                        errorsfolder = "level" + str(int(item[5])+2)
-                        foundlogs = True
-                        break
+        # while (foundlogs == False):
+        for item in levels:
+            for member in levels[item]:
+                # print(member)
+                if member == 'Logs':
+                    # levels["monthsfolder"] = "level" + str(int(item[5])+1)
+                    monthsfolder = "level" + str(int(item[5])+1)
+                    errorsfolder = "level" + str(int(item[5])+2)
+                    foundlogs = True
+                    break
 
         levels["monthsfolder"] = monthsfolder
         levels["errorsfolder"] = errorsfolder
@@ -58,6 +53,7 @@ def findlevels(zipname):
 def log(zipname, levels):
     with ZipFile(zipname) as zip:
         for month_folder in levels[levels["monthsfolder"]]:
+
             path = levels["logsfolder"] + month_folder + "/Log.txt"
             for line in zip.open(path):
                 decoded_line = line.decode(encoding="utf-8")
@@ -153,12 +149,13 @@ def markdown_logtext(line):
     # return line[0:2]
     return (line[0],line[1])
 
-        # if any(n in line for n in nonverbose):
+        # if any(n in line for n in filtertext):
 
 
-def errorcontext(zipname, levels, errors, idx, lookback = 200, lookforward = 5, lastoperation = False, verbose = False, timestamps = False):
+def errorcontext(zipname, levels, errors, idx, lookback = 200, lookforward = 5, lastoperation = False, filterflag = False, filtertext = ["ProgressBar", "SKIP ROTARY MOVE COMMAND", "IfThenGoto", "UVReadAndRecordUVAbsorbance"], timestamps = False):
     logtext = ""
-    nonverbose = ["ProgressBar", "SKIP ROTARY MOVE COMMAND", "IfThenGoto", "UVReadAndRecordUVAbsorbance"]
+    # filtertext = ["ProgressBar", "SKIP ROTARY MOVE COMMAND", "IfThenGoto", "UVReadAndRecordUVAbsorbance"]
+    # print(filtertext)
     errortime = datetime.fromisoformat(errors.iloc[idx, 0][0:23])
 
     year = str(errortime.year)
@@ -183,7 +180,7 @@ def errorcontext(zipname, levels, errors, idx, lookback = 200, lookforward = 5, 
         searchfiles = [errorfile, path + "Detail_0.txt"]
         for item in searchfiles:
             linefile = zip.open(item).readlines()
-
+            searchedpath = item
             for pos, line in enumerate(linefile):
                 # print(line)
                 try:
@@ -234,14 +231,28 @@ def errorcontext(zipname, levels, errors, idx, lookback = 200, lookforward = 5, 
         logtimes = []
         while filelow < filehigh:
         # for line in linefile[filelow:filehigh]:
-            if (any(n in linefile[filelow].decode(encoding="utf-8") for n in nonverbose)):
+            try:
+                decoded_line = linefile[filelow].decode(encoding="utf-8")
+                if (any(n in decoded_line for n in filtertext)):
 
-                if (verbose == False):
-                    filelow = filelow + 1
-                    filehigh = filehigh + 1
-                    filehigh = np.clip(filehigh, 0, len(linefile))
-                    continue
+                    if (filterflag == True):
+                        filelow = filelow + 1
+                        filehigh = filehigh + 1
+                        filehigh = np.clip(filehigh, 0, len(linefile))
+                        continue
+                    else:
+                        logtime, linetext = markdown_logtext(linefile[filelow])
+                        logtext = logtext + '\n' + linetext
+                        logtimes.append(logtime)
+
+                        # markdown_logtext_list = markdown_logtext(linefile[filelow])
+                        # logtext = logtext + '\n' + markdown_logtext_list[1]
+                        # logtimes.append(markdown_logtext_list[0])
+
+                        filelow = filelow + 1
                 else:
+
+
                     logtime, linetext = markdown_logtext(linefile[filelow])
                     logtext = logtext + '\n' + linetext
                     logtimes.append(logtime)
@@ -251,18 +262,9 @@ def errorcontext(zipname, levels, errors, idx, lookback = 200, lookforward = 5, 
                     # logtimes.append(markdown_logtext_list[0])
 
                     filelow = filelow + 1
-            else:
-
-
-                logtime, linetext = markdown_logtext(linefile[filelow])
-                logtext = logtext + '\n' + linetext
-                logtimes.append(logtime)
-
-                # markdown_logtext_list = markdown_logtext(linefile[filelow])
-                # logtext = logtext + '\n' + markdown_logtext_list[1]
-                # logtimes.append(markdown_logtext_list[0])
-
+            except:
                 filelow = filelow + 1
+                continue
         # print(logtext)
         if (notfound):
             return ("WARNING: Error not found!")
@@ -305,16 +307,26 @@ def errorcontext(zipname, levels, errors, idx, lookback = 200, lookforward = 5, 
             B= np.split(tabsarray, np.where(tabsarray[:]== 0)[0][1:])
             tabslength = 0
             # print(B)
+            maxtabs = 12
+            done = False
+            while done == False:
+                for pos,array in enumerate(B):
+                    # tabslength = len(B[pos]) + tabslength
+                    if (any(n > maxtabs for n in array)):
+                        B[pos] = array[array <= maxtabs]
+                        B.insert(pos+1, array[array > maxtabs]-maxtabs-1)
+                        continue
+                    done = True
             for pos,array in enumerate(B):
                 tabslength = len(B[pos]) + tabslength
-                if (len(array)>1):
+                nonzeroarray = array[array > 0]
+                if (len(nonzeroarray)>1):
                     if "OPERATION:" in logtext[tabslength-len(B[pos])]:
-                        nonzeroarray = array[array > 0]
                         minmember = min(nonzeroarray)-1
                     else:
-                        nonzeroarray = array[array > 0]
                         minmember = min(nonzeroarray)
 
+                    # done = True
             tabs = np.hstack(B)
 
             # print(tabs)
@@ -345,12 +357,12 @@ def errorcontext(zipname, levels, errors, idx, lookback = 200, lookforward = 5, 
                 logtext[i] = tabchars + logtext[i]
                 # print(logtext[i], "|",  member, "/", tabs[i])
             if timestamps:
-                print(list(logtext[0]))
-                logtext[0] = """---\n
+                logtext[0] = """\n
                 """ + logtimes[0] + re.sub("[\t ]{2,}", " ", logtext[0])
             else:
-                logtext[0] = """---\n
+                logtext[0] = """\n
                 """ + logtext[0]
+            logtext[0] = "Searching File: "+str(searchedpath)+"  \n  " + logtext[0]
 
 
 

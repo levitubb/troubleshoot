@@ -1,0 +1,9 @@
+altair<5
+tkinter
+os
+streamlit
+numpy
+zipfile
+pandas
+datetime
+re

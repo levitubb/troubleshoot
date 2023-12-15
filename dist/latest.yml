@@ -1,8 +1,8 @@
 version: 0.1.0
 files:
-  - url: streamlit_app-Setup-0.1.0.exe
-    sha512: UGiAXg/QFSb6A+DEcmjlvQ/EKqcuaijgRDWX7tbXjM7wCKCjAPWRgBz5WesF/avz3x0vEHobtbAgLWbwxTKHkg==
-    size: 105955509
-path: streamlit_app-Setup-0.1.0.exe
-sha512: UGiAXg/QFSb6A+DEcmjlvQ/EKqcuaijgRDWX7tbXjM7wCKCjAPWRgBz5WesF/avz3x0vEHobtbAgLWbwxTKHkg==
-releaseDate: '2023-12-08T21:19:56.727Z'
+  - url: TBanalyzer-Setup-0.1.0.exe
+    sha512: iGPs1o+idnh99HMbfuwp4Dx1Hj3Ba3y0ARrha3avclyGV2294XyOzaA1wOm3rp/re/8lShrRNYeBBCFx97hdHg==
+    size: 105955187
+path: TBanalyzer-Setup-0.1.0.exe
+sha512: iGPs1o+idnh99HMbfuwp4Dx1Hj3Ba3y0ARrha3avclyGV2294XyOzaA1wOm3rp/re/8lShrRNYeBBCFx97hdHg==
+releaseDate: '2023-12-15T23:29:53.474Z'
