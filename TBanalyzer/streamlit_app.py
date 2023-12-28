@@ -41,48 +41,51 @@ def TBanalyzer():
         # print(log_info)
 
         errors = errorlog(zipname, levels, log_info["serial"])
-        # print(errors)
+        if type(errors) == str:
+            st.write("Your TB file does not show any errors, please upload a different file to be analyzed.")
+        else:
 
-        st.markdown(":blue[__Software Version:__ " + log_info["version"] + "\t|\t__Date Updated:__ " + str(log_info["date updated"])[0:19]+" ]")
-        "---"
-        # col2 = st.write("Date Updated: " + str(log_info["date updated"]))
-        st.subheader("Errors Detected:")
-        st.dataframe(errors, width = 1200, height = 300, use_container_width = True)
+            st.markdown(":blue[__Software Version:__ " + log_info["version"] + "\t|\t__Date Updated:__ " + str(log_info["date updated"])[0:19]+" ]")
+            "---"
+            # col2 = st.write("Date Updated: " + str(log_info["date updated"]))
+            st.subheader("Errors Detected:")
+            st.dataframe(errors, width = 1200, height = 300, use_container_width = True)
 
 
 
-        option = st.selectbox("Pick an error to investigate:", errors["Timestamp"] + " | " + errors["Description"])
-        optiontime = datetime.fromisoformat(option.split("|")[0][0:23])
-        error_location = errors.set_index(pd.to_datetime(errors['Timestamp'])).index.get_indexer([optiontime], method='nearest')[0]
+            option = st.selectbox("Pick an error to investigate:", errors["Timestamp"] + " | " + errors["Description"])
+            optiontime = datetime.fromisoformat(option.split("|")[0][0:23])
+            print(errors.set_index(pd.to_datetime(errors['Timestamp'])).sort_index().index.get_indexer([optiontime], method='nearest')[0])
+            error_location = errors.set_index(pd.to_datetime(errors['Timestamp'])).sort_index().index.get_indexer([optiontime], method='nearest')[0]
 
-        col1, col2, col3= st.columns([1,2,2])
-        lastoperation = col1.checkbox("Start logs from most recent Operation", value = True)
-        filterflag = col1.checkbox("Filter Text", value = True)
-        timestamps = col1.checkbox("Timestamps", value = False)
-        if filterflag:
-            filtertext = col2.text_area("Text to filter", """ProgressBar
+            col1, col2, col3= st.columns([1,2,2])
+            lastoperation = col1.checkbox("Start logs from most recent Operation", value = True)
+            filterflag = col1.checkbox("Filter Text", value = True)
+            timestamps = col1.checkbox("Timestamps", value = False)
+            if filterflag:
+                filtertext = col2.text_area("Text to filter", """ProgressBar
 SKIP ROTARY MOVE COMMAND
 IfThenGoto
 UVReadAndRecordUVAbsorbance""", height = 125)
-            filtertext = filtertext.split("\n")
-        else:
-            filtertext = []
-        # coll1, coll2 = st.columns([1, 3])
+                filtertext = filtertext.split("\n")
+            else:
+                filtertext = []
+            # coll1, coll2 = st.columns([1, 3])
 
-        if not lastoperation:
-            lookback = col3.number_input("How many lines to load before the error?", min_value = 0, value = 20)
-            lookforward = col3.number_input("How many lines to load after the error?", min_value = -500, value = 5)
-            # logtimes, logtext = errorcontext(zipname, levels, errors, error_location, lookback, lookforward, verbose=verbose)
-            # coll1.markdown(logtimes)
-            # coll2.markdown(logtext)
+            if not lastoperation:
+                lookback = col3.number_input("How many lines to load before the error?", min_value = 0, value = 20)
+                lookforward = col3.number_input("How many lines to load after the error?", min_value = -500, value = 5)
+                # logtimes, logtext = errorcontext(zipname, levels, errors, error_location, lookback, lookforward, verbose=verbose)
+                # coll1.markdown(logtimes)
+                # coll2.markdown(logtext)
 
-            st.markdown(errorcontext(zipname, levels, errors, error_location, lookback, lookforward, filterflag=filterflag, filtertext = filtertext, timestamps=timestamps))
-        else:
-            # logtimes, logtext = errorcontext(zipname, levels, errors, error_location, lastoperation = lastoperation, verbose=verbose)
-            # coll1.markdown(logtimes)
-            # coll2.markdown(logtext)
+                st.markdown(errorcontext(zipname, levels, errors, error_location, lookback, lookforward, filterflag=filterflag, filtertext = filtertext, timestamps=timestamps))
+            else:
+                # logtimes, logtext = errorcontext(zipname, levels, errors, error_location, lastoperation = lastoperation, verbose=verbose)
+                # coll1.markdown(logtimes)
+                # coll2.markdown(logtext)
 
-            st.markdown(errorcontext(zipname, levels, errors, error_location, lastoperation = lastoperation, filterflag=filterflag, filtertext = filtertext, timestamps=timestamps))
+                st.markdown(errorcontext(zipname, levels, errors, error_location, lastoperation = lastoperation, filterflag=filterflag, filtertext = filtertext, timestamps=timestamps))
 
 
 

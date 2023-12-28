@@ -100,6 +100,7 @@ def errorlog(zipname, levels, serial):
     errors = pd.DataFrame()
     if 'Errors.txt' not in levels[levels["errorsfolder"]]:
         print("WARNING: No error log found")
+        errors = "No Error Log Found"
     else:
         for month_folder in levels[levels["monthsfolder"]]:
             path = levels["logsfolder"] + month_folder + "/Errors.txt"
@@ -117,9 +118,9 @@ def errorlog(zipname, levels, serial):
                         else:
                             message[3] = message[3].split('"')[1]
                             errors = pd.concat([errors, pd.Series([message[0], message[3]])], ignore_index = 1, axis = 1)
-    errors = errors.transpose()
-    errors["serial"] = serial
-    errors.columns = ['Timestamp', "Description", "Serial"]
+        errors = errors.transpose()
+        errors["serial"] = serial
+        errors.columns = ['Timestamp', "Description", "Serial"]
     # print (type(errors.Timestamp.iloc[1]))
     return errors
 
