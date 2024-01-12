@@ -34,18 +34,18 @@ def TBanalyzer():
     if (zipname != "") & (zipname != None):
     # if 0:
         # st.text("TB Location: " + zipname)
-        levels = findlevels(zipname)
+        levels = find_levels(zipname)
         # print(levels)
 
-        log_info = log(zipname, levels)
+        log_info = process_log(zipname, levels)
         # print(log_info)
 
-        errors = errorlog(zipname, levels, log_info["serial"])
+        errors = extract_error_log(zipname, levels, log_info["serial"])
         if type(errors) == str:
             st.write("Your TB file does not show any errors, please upload a different file to be analyzed.")
         else:
 
-            st.markdown(":blue[__Software Version:__ " + log_info["version"] + "\t|\t__Date Updated:__ " + str(log_info["date updated"])[0:19]+" ]")
+            st.markdown(":blue[__Software Version:__ " + log_info["version"] + "\t|\t__Date Updated:__ " + str(log_info["date_updated"])[0:19]+" ]")
             "---"
             # col2 = st.write("Date Updated: " + str(log_info["date updated"]))
             st.subheader("Errors Detected:")
